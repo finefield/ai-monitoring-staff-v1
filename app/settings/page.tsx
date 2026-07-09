@@ -6,6 +6,7 @@ import { AlertSetting } from "@/lib/monitoring/types";
 export default function SettingsPage() {
   const [setting, setSetting] = useState<AlertSetting | null>(null);
   const [saved, setSaved] = useState(false);
+  const [testSaved, setTestSaved] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings", { cache: "no-store" })
@@ -31,6 +32,29 @@ export default function SettingsPage() {
   function update<K extends keyof AlertSetting>(key: K, value: AlertSetting[K]) {
     if (!setting) return;
     setSetting({ ...setting, [key]: value });
+  }
+
+  async function applyTestSetting() {
+    if (!setting) return;
+
+    const testSetting: AlertSetting = {
+      ...setting,
+      buyPrice: 19.45,
+      sellPrice: 19.49,
+      approachWidth: 0.05,
+      isActive: true,
+      cooldownMinutes: 0
+    };
+
+    const response = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(testSetting)
+    });
+    const data = await response.json();
+    setSetting(data.setting);
+    setTestSaved(true);
+    setTimeout(() => setTestSaved(false), 3000);
   }
 
   return (
@@ -119,11 +143,25 @@ export default function SettingsPage() {
             <p className="label">
               通知文には楽天銀行FX側のBid/Askとスプレッド確認文が必ず入ります。
             </p>
-            <button className="button" type="submit">
-              保存
-            </button>
+            <div className="switch-row">
+              <button
+                className="button secondary"
+                type="button"
+                onClick={applyTestSetting}
+              >
+                テスト用設定に変更
+              </button>
+              <button className="button" type="submit">
+                保存
+              </button>
+            </div>
           </div>
           {saved && <p className="label">保存しました。</p>}
+          {testSaved && (
+            <p className="label">
+              テスト用設定を保存しました。Dashboardで監視を1回実行してください。
+            </p>
+          )}
         </form>
       )}
     </section>

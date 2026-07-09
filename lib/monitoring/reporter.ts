@@ -6,12 +6,15 @@ export async function sendLineMessage(
 ): Promise<SendResult> {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
-  if (!to) {
-    return { status: "skipped", detail: "LINE通知先が未設定です。" };
+  if (!token) {
+    return {
+      status: "skipped_no_line_token",
+      detail: "LINE token is not configured."
+    };
   }
 
-  if (!token) {
-    return { status: "mocked", detail: "LINE token is not configured." };
+  if (!to) {
+    return { status: "skipped", detail: "LINE通知先が未設定です。" };
   }
 
   try {

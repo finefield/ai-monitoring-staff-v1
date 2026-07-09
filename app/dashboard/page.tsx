@@ -9,6 +9,19 @@ type DashboardData = {
   pendingAlerts: Array<{ alertType: string; targetPrice: number; difference: number }>;
 };
 
+type MonitorResult = {
+  setting: AlertSetting;
+  rate: Rate;
+  alerts: Array<{
+    alertType: string;
+    currentPrice: number;
+    targetPrice: number;
+    difference: number;
+    message: string;
+    sendStatus: string;
+  }>;
+};
+
 function formatTime(value?: string) {
   if (!value) return "-";
   return new Date(value).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
@@ -18,6 +31,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [monitorResult, setMonitorResult] = useState<MonitorResult | null>(null);
 
   async function load() {
     setLoading(true);
@@ -40,7 +54,9 @@ export default function DashboardPage() {
 
   async function runMonitor() {
     setRunning(true);
-    await fetch("/api/monitor", { method: "POST" });
+    const response = await fetch("/api/monitor", { method: "POST" });
+    const result = await response.json();
+    setMonitorResult(result);
     await load();
     setRunning(false);
   }
@@ -57,7 +73,7 @@ export default function DashboardPage() {
           <p>HKD/JPYの外部レート監視状態</p>
         </div>
         <button className="button" onClick={runMonitor} disabled={running || loading}>
-          {running ? "監視中..." : "手動チェック"}
+          {running ? "監視中..." : "監視を1回実行"}
         </button>
       </div>
 
@@ -107,6 +123,53 @@ export default function DashboardPage() {
             <div className="label">判定中の通知</div>
             <div className="small-metric">{data.pendingAlerts.length}件</div>
           </div>
+
+          {monitorResult && (
+            <div className="panel wide">
+              <div className="label">監視実行結果</div>
+              <div className="small-metric">
+                rate_logs 保存: {monitorResult.rate.symbol} Mid{" "}
+                {monitorResult.rate.mid.toFixed(4)}
+              </div>
+              <p className="label">
+                取得元: {monitorResult.rate.source} / 取得時刻:{" "}
+                {formatTime(monitorResult.rate.fetchedAt)}
+              </p>
+
+              {monitorResult.alerts.length === 0 ? (
+                <div className="empty" style={{ marginTop: 14 }}>
+                  alert_logs は作成されませんでした。通知条件に達していません。
+                </div>
+              ) : (
+                <div className="table-wrap" style={{ marginTop: 14 }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>通知種別</th>
+                        <th>現在値</th>
+                        <th>設定価格</th>
+                        <th>差分</th>
+                        <th>メッセージ</th>
+                        <th>送信ステータス</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monitorResult.alerts.map((alert, index) => (
+                        <tr key={`${alert.alertType}-${index}`}>
+                          <td>{alert.alertType}</td>
+                          <td>{alert.currentPrice.toFixed(4)}</td>
+                          <td>{alert.targetPrice.toFixed(4)}</td>
+                          <td>{alert.difference.toFixed(4)}</td>
+                          <td className="message">{alert.message}</td>
+                          <td>{alert.sendStatus}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </section>

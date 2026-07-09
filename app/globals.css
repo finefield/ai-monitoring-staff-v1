@@ -255,6 +255,17 @@ td.message {
   text-align: center;
 }
 
+.stack {
+  display: grid;
+  gap: 24px;
+}
+
+.section-title {
+  margin: 0 0 12px;
+  color: var(--navy);
+  font-size: 18px;
+}
+
 @media (max-width: 860px) {
   .shell {
     grid-template-columns: 1fr;

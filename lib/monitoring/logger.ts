@@ -179,3 +179,30 @@ export async function listAlertLogs(): Promise<AlertLog[]> {
     sendStatus: row.send_status || "unknown"
   }));
 }
+
+export async function listRateLogs(): Promise<Rate[]> {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("rate_logs")
+    .select("*")
+    .order("fetched_at", { ascending: false })
+    .limit(100);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map((row) => ({
+    symbol: row.symbol,
+    bid: Number(row.bid),
+    ask: Number(row.ask),
+    mid: Number(row.mid),
+    source: row.source,
+    fetchedAt: row.fetched_at
+  }));
+}
