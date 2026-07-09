@@ -1,0 +1,131 @@
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+import { AlertSetting } from "@/lib/monitoring/types";
+
+export default function SettingsPage() {
+  const [setting, setSetting] = useState<AlertSetting | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => setSetting(data.setting));
+  }, []);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!setting) return;
+
+    const response = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(setting)
+    });
+    const data = await response.json();
+    setSetting(data.setting);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2200);
+  }
+
+  function update<K extends keyof AlertSetting>(key: K, value: AlertSetting[K]) {
+    if (!setting) return;
+    setSetting({ ...setting, [key]: value });
+  }
+
+  return (
+    <section>
+      <div className="page-header">
+        <div>
+          <h2>Settings</h2>
+          <p>通知価格、LINE通知先、クールダウンを設定</p>
+        </div>
+      </div>
+
+      {!setting ? (
+        <div className="empty">読み込み中...</div>
+      ) : (
+        <form className="panel" onSubmit={onSubmit}>
+          <div className="form-grid">
+            <div className="field">
+              <label>買い通知価格</label>
+              <input
+                type="number"
+                step="0.0001"
+                value={setting.buyPrice}
+                onChange={(event) => update("buyPrice", Number(event.target.value))}
+              />
+            </div>
+            <div className="field">
+              <label>売り通知価格</label>
+              <input
+                type="number"
+                step="0.0001"
+                value={setting.sellPrice}
+                onChange={(event) => update("sellPrice", Number(event.target.value))}
+              />
+            </div>
+            <div className="field">
+              <label>接近通知幅</label>
+              <input
+                type="number"
+                step="0.0001"
+                value={setting.approachWidth}
+                onChange={(event) =>
+                  update("approachWidth", Number(event.target.value))
+                }
+              />
+            </div>
+            <div className="field">
+              <label>クールダウン時間（分）</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={setting.cooldownMinutes}
+                onChange={(event) =>
+                  update("cooldownMinutes", Number(event.target.value))
+                }
+              />
+            </div>
+            <div className="field">
+              <label>LINE通知先</label>
+              <input
+                value={setting.notifyLineUserId}
+                placeholder="LINE userId"
+                onChange={(event) =>
+                  update("notifyLineUserId", event.target.value)
+                }
+              />
+            </div>
+            <div className="field">
+              <label>監視ON/OFF</label>
+              <div className="switch-row">
+                <span className={`status ${setting.isActive ? "on" : "off"}`}>
+                  {setting.isActive ? "監視ON" : "監視OFF"}
+                </span>
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => update("isActive", !setting.isActive)}
+                >
+                  切り替え
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="switch-row" style={{ marginTop: 22 }}>
+            <p className="label">
+              通知文には楽天銀行FX側のBid/Askとスプレッド確認文が必ず入ります。
+            </p>
+            <button className="button" type="submit">
+              保存
+            </button>
+          </div>
+          {saved && <p className="label">保存しました。</p>}
+        </form>
+      )}
+    </section>
+  );
+}
