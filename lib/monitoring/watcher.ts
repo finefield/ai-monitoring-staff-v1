@@ -17,6 +17,42 @@ function makeMockRate(symbol: string): Rate {
   };
 }
 
+async function getFrankfurterRate(symbol: string): Promise<Rate> {
+  if (symbol !== "HKD/JPY") {
+    throw new Error(`Frankfurter provider does not support symbol: ${symbol}`);
+  }
+
+  const response = await fetch(
+    "https://api.frankfurter.dev/v1/latest?base=HKD&symbols=JPY",
+    { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Frankfurter API error: ${response.status} ${await response.text()}`);
+  }
+
+  const data = (await response.json()) as {
+    date?: string;
+    rates?: { JPY?: number };
+  };
+  const mid = data.rates?.JPY;
+
+  if (typeof mid !== "number") {
+    throw new Error("Frankfurter API response does not include rates.JPY");
+  }
+
+  const fetchedAt = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
+
+  return {
+    symbol,
+    bid: Number((mid - 0.009).toFixed(4)),
+    ask: Number((mid + 0.009).toFixed(4)),
+    mid: Number(mid.toFixed(4)),
+    source: "frankfurter",
+    fetchedAt
+  };
+}
+
 async function getExternalRate(symbol: string): Promise<Rate> {
   const provider = process.env.RATE_API_PROVIDER || "mock";
 
@@ -24,12 +60,11 @@ async function getExternalRate(symbol: string): Promise<Rate> {
     return makeMockRate(symbol);
   }
 
-  // Provider adapters can be added here without changing Judge/Writer/Reporter/Logger.
-  // v1 falls back to mock until an external adapter such as OANDA is configured.
-  return {
-    ...makeMockRate(symbol),
-    source: `${provider}:mock-fallback`
-  };
+  if (provider === "frankfurter") {
+    return getFrankfurterRate(symbol);
+  }
+
+  throw new Error(`Unsupported RATE_API_PROVIDER: ${provider}`);
 }
 
 export async function getCurrentRate(symbol: string): Promise<Rate> {

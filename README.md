@@ -127,8 +127,16 @@ curl -X POST http://localhost:3000/api/monitor
 想定例:
 
 - `RATE_API_PROVIDER=mock`
-- `RATE_API_PROVIDER=oanda`
+- `RATE_API_PROVIDER=frankfurter`
 - `RATE_API_KEY=...`
+
+`RATE_API_PROVIDER=frankfurter`の場合、Frankfurter APIからHKD/JPYの日次レートを取得します。
+
+```text
+https://api.frankfurter.dev/v1/latest?base=HKD&symbols=JPY
+```
+
+FrankfurterはリアルタイムFX取引用ではなく、中央銀行由来の日次レートです。楽天銀行FXの実レートとは差が出る可能性があるため、通知文に従って楽天銀行FX側のBid/Askとスプレッドを確認してください。
 
 差し替え時も`getCurrentRate(symbol)`の戻り値は以下の形に揃えてください。
 
@@ -138,7 +146,7 @@ curl -X POST http://localhost:3000/api/monitor
   bid: 19.491,
   ask: 19.509,
   mid: 19.5,
-  source: "oanda",
+  source: "frankfurter",
   fetchedAt: "2026-07-09T00:00:00.000Z"
 }
 ```
