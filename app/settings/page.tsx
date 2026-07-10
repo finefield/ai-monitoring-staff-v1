@@ -43,6 +43,16 @@ export default function SettingsPage() {
     setSetting({ ...setting, [key]: value });
   }
 
+  function normalizeNonNegativeInteger(value: string) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue) || numericValue < 0) {
+      return 0;
+    }
+
+    return Math.floor(numericValue);
+  }
+
   async function applyTestSetting() {
     if (!setting) return;
 
@@ -145,9 +155,12 @@ export default function SettingsPage() {
                 type="number"
                 min="0"
                 step="1"
-                value={setting.cooldownMinutes}
+                value={Number(setting.cooldownMinutes) || 0}
                 onChange={(event) =>
-                  update("cooldownMinutes", Number(event.target.value))
+                  update(
+                    "cooldownMinutes",
+                    normalizeNonNegativeInteger(event.target.value)
+                  )
                 }
               />
             </div>
