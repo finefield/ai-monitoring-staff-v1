@@ -3,3 +3,11 @@ node_modules
 .env
 .env.local
 *.log
+
+# Local broken dependency backups
+.next_broken/
+node_modules_broken/
+
+# Local Codex/runtime folders
+outputs/
+work/

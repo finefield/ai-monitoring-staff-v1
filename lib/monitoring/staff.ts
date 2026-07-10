@@ -32,9 +32,13 @@ export async function runMonitoringStaff(symbol = DEFAULT_SYMBOL) {
 
     const message = await generateAlertMessage(alertContext);
     const sendResult = await sendLineMessage(setting.notifyLineUserId, message);
+    const loggedMessage =
+      sendResult.status === "error" && sendResult.detail
+        ? `${message}\n\nLINE送信エラー: ${sendResult.detail}`
+        : message;
     const alertLog: AlertLog = {
       ...alertContext,
-      message,
+      message: loggedMessage,
       sentTo: setting.notifyLineUserId,
       sentAt: new Date().toISOString(),
       sendStatus: sendResult.status

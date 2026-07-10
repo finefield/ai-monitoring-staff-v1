@@ -90,13 +90,29 @@ http://localhost:3000/dashboard
 
 Supabase環境変数が未設定でも、`/dashboard`と`/settings`はデフォルト設定とモックレートで表示できます。この場合、ログはDBに保存されません。
 
-LINE tokenが未設定の場合、通知送信は`mocked`として扱われます。
+LINE tokenが未設定の場合、通知送信は`skipped_no_line_token`として扱われ、通知ログには文面が保存されます。
 
 OpenAI API keyが未設定の場合、Writerは固定テンプレートで通知文を生成します。
 
+## LINE接続手順
+
+1. LINE DevelopersでMessaging APIチャネルを作成します。
+2. Messaging APIチャネルのChannel access tokenを発行します。
+3. `.env.local`に以下を設定します。
+
+```bash
+LINE_CHANNEL_ACCESS_TOKEN=発行したChannel access token
+```
+
+4. `/settings`を開き、`LINE通知先`に通知先のLINE userIdを登録して保存します。
+5. `/settings`の`LINEテスト送信`を実行します。
+6. 成功すると、登録した通知先へ接続テストメッセージが届きます。
+
+`.env.local`はGitHubにコミットしないでください。`.gitignore`で除外しています。
+
 ## 監視実行
 
-v1では`/dashboard`の「手動チェック」ボタン、または以下のAPIで監視を実行できます。
+v1では`/dashboard`の「監視を1回実行」ボタン、または以下のAPIで監視を実行できます。
 
 ```bash
 curl -X POST http://localhost:3000/api/monitor

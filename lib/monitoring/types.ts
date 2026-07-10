@@ -46,6 +46,6 @@ export type AlertLog = AlertContext & {
 };
 
 export type SendResult = {
-  status: "sent" | "skipped" | "skipped_no_line_token" | "failed";
+  status: "sent" | "skipped" | "skipped_no_line_token" | "error";
   detail?: string;
 };

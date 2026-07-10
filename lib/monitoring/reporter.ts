@@ -31,13 +31,13 @@ export async function sendLineMessage(
     });
 
     if (!response.ok) {
-      return { status: "failed", detail: await response.text() };
+      return { status: "error", detail: await response.text() };
     }
 
     return { status: "sent" };
   } catch (error) {
     return {
-      status: "failed",
+      status: "error",
       detail: error instanceof Error ? error.message : "Unknown LINE error"
     };
   }

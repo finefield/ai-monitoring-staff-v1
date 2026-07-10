@@ -7,6 +7,8 @@ export default function SettingsPage() {
   const [setting, setSetting] = useState<AlertSetting | null>(null);
   const [saved, setSaved] = useState(false);
   const [testSaved, setTestSaved] = useState(false);
+  const [lineTesting, setLineTesting] = useState(false);
+  const [lineTestResult, setLineTestResult] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/settings", { cache: "no-store" })
@@ -55,6 +57,28 @@ export default function SettingsPage() {
     setSetting(data.setting);
     setTestSaved(true);
     setTimeout(() => setTestSaved(false), 3000);
+  }
+
+  async function sendLineTest() {
+    setLineTesting(true);
+    setLineTestResult(null);
+
+    try {
+      const response = await fetch("/api/line/test", { method: "POST" });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setLineTestResult(
+          data.error || data.detail || "LINEテスト送信に失敗しました。"
+        );
+      } else {
+        setLineTestResult("LINEテスト送信に成功しました。");
+      }
+    } catch {
+      setLineTestResult("LINEテスト送信に失敗しました。");
+    } finally {
+      setLineTesting(false);
+    }
   }
 
   return (
@@ -121,6 +145,15 @@ export default function SettingsPage() {
                   update("notifyLineUserId", event.target.value)
                 }
               />
+              <button
+                type="button"
+                className="button secondary"
+                onClick={sendLineTest}
+                disabled={lineTesting}
+              >
+                {lineTesting ? "送信中..." : "LINEテスト送信"}
+              </button>
+              {lineTestResult && <p className="label">{lineTestResult}</p>}
             </div>
             <div className="field">
               <label>監視ON/OFF</label>
