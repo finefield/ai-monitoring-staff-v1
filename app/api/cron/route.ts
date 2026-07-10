@@ -3,7 +3,28 @@ import { runMonitoringStaff } from "@/lib/monitoring/staff";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+function isAuthorized(request: Request) {
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret) {
+    return true;
+  }
+
+  const authorization = request.headers.get("authorization");
+  return authorization === `Bearer ${cronSecret}`;
+}
+
+export async function GET(request: Request) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Unauthorized cron request"
+      },
+      { status: 401 }
+    );
+  }
+
   try {
     const result = await runMonitoringStaff();
 
