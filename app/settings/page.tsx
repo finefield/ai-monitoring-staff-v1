@@ -25,7 +25,14 @@ export default function SettingsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(setting)
     });
-    const data = await response.json();
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+
+    if (!response.ok) {
+      alert(data.error || data.detail || "設定の保存に失敗しました。");
+      return;
+    }
+
     setSetting(data.setting);
     setSaved(true);
     setTimeout(() => setSaved(false), 2200);
@@ -53,7 +60,14 @@ export default function SettingsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(testSetting)
     });
-    const data = await response.json();
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+
+    if (!response.ok) {
+      alert(data.error || data.detail || "テスト用設定への変更に失敗しました。");
+      return;
+    }
+
     setSetting(data.setting);
     setTestSaved(true);
     setTimeout(() => setTestSaved(false), 3000);
@@ -65,7 +79,8 @@ export default function SettingsPage() {
 
     try {
       const response = await fetch("/api/line/test", { method: "POST" });
-      const data = await response.json();
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
 
       if (!response.ok) {
         setLineTestResult(
