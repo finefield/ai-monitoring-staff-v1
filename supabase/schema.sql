@@ -9,6 +9,9 @@ create table if not exists public.alert_settings (
   notify_line_user_id text,
   is_active boolean not null default true,
   cooldown_minutes integer not null default 30,
+  movement_alert_enabled boolean not null default true,
+  movement_window_minutes integer not null default 15,
+  movement_threshold numeric(12, 6) not null default 0.030000,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -33,6 +36,8 @@ create table if not exists public.alert_logs (
       'hit_buy',
       'approach_sell',
       'hit_sell',
+      'movement_up',
+      'movement_down',
       'error'
     )
   ),
@@ -62,7 +67,10 @@ insert into public.alert_settings (
   approach_width,
   notify_line_user_id,
   is_active,
-  cooldown_minutes
+  cooldown_minutes,
+  movement_alert_enabled,
+  movement_window_minutes,
+  movement_threshold
 )
 values (
   '00000000-0000-0000-0000-000000000001',
@@ -72,6 +80,9 @@ values (
   0.03,
   '',
   true,
-  30
+  30,
+  true,
+  15,
+  0.030000
 )
 on conflict (id) do nothing;

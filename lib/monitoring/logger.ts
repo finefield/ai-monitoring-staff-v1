@@ -2,6 +2,45 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { AlertContext, AlertLog, AlertSetting, Rate } from "./types";
 import { defaultSetting } from "./config";
 
+type AlertSettingRow = {
+  id: string;
+  symbol: string;
+  buy_price: number | string;
+  sell_price: number | string;
+  approach_width: number | string;
+  notify_line_user_id?: string | null;
+  is_active: boolean;
+  cooldown_minutes: number | string;
+  movement_alert_enabled?: boolean | null;
+  movement_window_minutes?: number | string | null;
+  movement_threshold?: number | string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+function toAlertSetting(row: AlertSettingRow): AlertSetting {
+  return {
+    id: row.id,
+    symbol: row.symbol,
+    buyPrice: Number(row.buy_price),
+    sellPrice: Number(row.sell_price),
+    approachWidth: Number(row.approach_width),
+    notifyLineUserId: row.notify_line_user_id || "",
+    isActive: Boolean(row.is_active),
+    cooldownMinutes: Number(row.cooldown_minutes),
+    movementAlertEnabled:
+      row.movement_alert_enabled ?? defaultSetting.movementAlertEnabled,
+    movementWindowMinutes: Number(
+      row.movement_window_minutes ?? defaultSetting.movementWindowMinutes
+    ),
+    movementThreshold: Number(
+      row.movement_threshold ?? defaultSetting.movementThreshold
+    ),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
 export async function getAlertSetting(
   symbol = defaultSetting.symbol
 ): Promise<AlertSetting> {
@@ -23,18 +62,7 @@ export async function getAlertSetting(
     return defaultSetting;
   }
 
-  return {
-    id: data.id,
-    symbol: data.symbol,
-    buyPrice: Number(data.buy_price),
-    sellPrice: Number(data.sell_price),
-    approachWidth: Number(data.approach_width),
-    notifyLineUserId: data.notify_line_user_id || "",
-    isActive: Boolean(data.is_active),
-    cooldownMinutes: Number(data.cooldown_minutes),
-    createdAt: data.created_at,
-    updatedAt: data.updated_at
-  };
+  return toAlertSetting(data);
 }
 
 export async function upsertAlertSetting(
@@ -46,7 +74,7 @@ export async function upsertAlertSetting(
     return setting;
   }
 
-  const payload = {
+  const basePayload = {
     id: setting.id,
     symbol: setting.symbol,
     buy_price: setting.buyPrice,
@@ -57,29 +85,34 @@ export async function upsertAlertSetting(
     cooldown_minutes: setting.cooldownMinutes,
     updated_at: new Date().toISOString()
   };
+  const payload = {
+    ...basePayload,
+    movement_alert_enabled: setting.movementAlertEnabled,
+    movement_window_minutes: setting.movementWindowMinutes,
+    movement_threshold: setting.movementThreshold
+  };
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("alert_settings")
     .upsert(payload, { onConflict: "id" })
     .select("*")
     .single();
 
+  if (error && error.message.toLowerCase().includes("movement_")) {
+    const retry = await supabase
+      .from("alert_settings")
+      .upsert(basePayload, { onConflict: "id" })
+      .select("*")
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
+
   if (error) {
     throw new Error(error.message);
   }
 
-  return {
-    id: data.id,
-    symbol: data.symbol,
-    buyPrice: Number(data.buy_price),
-    sellPrice: Number(data.sell_price),
-    approachWidth: Number(data.approach_width),
-    notifyLineUserId: data.notify_line_user_id || "",
-    isActive: Boolean(data.is_active),
-    cooldownMinutes: Number(data.cooldown_minutes),
-    createdAt: data.created_at,
-    updatedAt: data.updated_at
-  };
+  return toAlertSetting(data);
 }
 
 export async function saveRateLog(rate: Rate): Promise<void> {
@@ -97,6 +130,40 @@ export async function saveRateLog(rate: Rate): Promise<void> {
     source: rate.source,
     fetched_at: rate.fetchedAt
   });
+}
+
+export async function getPastRate(
+  symbol: string,
+  minutesAgo: number
+): Promise<Rate | null> {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return null;
+  }
+
+  const cutoff = new Date(Date.now() - minutesAgo * 60_000).toISOString();
+  const { data, error } = await supabase
+    .from("rate_logs")
+    .select("*")
+    .eq("symbol", symbol)
+    .lte("fetched_at", cutoff)
+    .order("fetched_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return {
+    symbol: data.symbol,
+    bid: Number(data.bid),
+    ask: Number(data.ask),
+    mid: Number(data.mid),
+    source: data.source,
+    fetchedAt: data.fetched_at
+  };
 }
 
 export async function saveAlertLog(alert: AlertLog): Promise<void> {

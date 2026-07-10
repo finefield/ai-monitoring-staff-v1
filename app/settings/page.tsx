@@ -53,6 +53,26 @@ export default function SettingsPage() {
     return Math.floor(numericValue);
   }
 
+  function normalizePositiveInteger(value: string, fallback: number) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      return fallback;
+    }
+
+    return Math.floor(numericValue);
+  }
+
+  function normalizeNonNegativeNumber(value: string, fallback: number) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue) || numericValue < 0) {
+      return fallback;
+    }
+
+    return numericValue;
+  }
+
   async function applyTestSetting() {
     if (!setting) return;
 
@@ -62,7 +82,10 @@ export default function SettingsPage() {
       sellPrice: 19.49,
       approachWidth: 0.05,
       isActive: true,
-      cooldownMinutes: 0
+      cooldownMinutes: 0,
+      movementAlertEnabled: true,
+      movementWindowMinutes: 15,
+      movementThreshold: 0.03
     };
 
     const response = await fetch("/api/settings", {
@@ -160,6 +183,60 @@ export default function SettingsPage() {
                   update(
                     "cooldownMinutes",
                     normalizeNonNegativeInteger(event.target.value)
+                  )
+                }
+              />
+            </div>
+            <div className="field">
+              <label>短時間変動アラート</label>
+              <div className="switch-row">
+                <span
+                  className={`status ${
+                    setting.movementAlertEnabled ? "on" : "off"
+                  }`}
+                >
+                  {setting.movementAlertEnabled ? "ON" : "OFF"}
+                </span>
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() =>
+                    update(
+                      "movementAlertEnabled",
+                      !setting.movementAlertEnabled
+                    )
+                  }
+                >
+                  切り替え
+                </button>
+              </div>
+            </div>
+            <div className="field">
+              <label>比較時間（分）</label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={Number(setting.movementWindowMinutes) || 15}
+                onChange={(event) =>
+                  update(
+                    "movementWindowMinutes",
+                    normalizePositiveInteger(event.target.value, 15)
+                  )
+                }
+              />
+            </div>
+            <div className="field">
+              <label>変動幅しきい値</label>
+              <input
+                type="number"
+                min="0"
+                step="0.0001"
+                value={Number(setting.movementThreshold) || 0.03}
+                onChange={(event) =>
+                  update(
+                    "movementThreshold",
+                    normalizeNonNegativeNumber(event.target.value, 0.03)
                   )
                 }
               />

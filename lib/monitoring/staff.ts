@@ -1,7 +1,8 @@
 import { DEFAULT_SYMBOL } from "./config";
-import { evaluateAlert } from "./judge";
+import { evaluateAlert, evaluateMovementAlert } from "./judge";
 import {
   getAlertSetting,
+  getPastRate,
   saveAlertLog,
   saveRateLog,
   shouldNotify
@@ -16,7 +17,11 @@ export async function runMonitoringStaff(symbol = DEFAULT_SYMBOL) {
   const rate = await getCurrentRate(symbol);
   await saveRateLog(rate);
 
-  const alertContexts = evaluateAlert(rate, setting);
+  const pastRate = await getPastRate(symbol, setting.movementWindowMinutes);
+  const alertContexts = [
+    ...evaluateAlert(rate, setting),
+    ...evaluateMovementAlert(rate, pastRate, setting)
+  ];
   const alertLogs: AlertLog[] = [];
 
   for (const alertContext of alertContexts) {

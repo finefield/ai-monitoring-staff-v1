@@ -7,6 +7,16 @@ function formatTime(value: string) {
   return new Date(value).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
 }
 
+const alertTypeLabels: Record<string, string> = {
+  approach_buy: "買い接近",
+  hit_buy: "買い到達",
+  approach_sell: "売り接近",
+  hit_sell: "売り到達",
+  movement_up: "短時間上昇",
+  movement_down: "短時間下落",
+  error: "エラー"
+};
+
 export default function LogsPage() {
   const [logs, setLogs] = useState<AlertLog[]>([]);
   const [rateLogs, setRateLogs] = useState<Rate[]>([]);
@@ -65,7 +75,7 @@ export default function LogsPage() {
                       <tr key={`${log.sentAt}-${index}`}>
                         <td>{formatTime(log.sentAt)}</td>
                         <td>{log.symbol}</td>
-                        <td>{log.alertType}</td>
+                        <td>{alertTypeLabels[log.alertType] || log.alertType}</td>
                         <td>{log.currentPrice.toFixed(4)}</td>
                         <td>{log.targetPrice.toFixed(4)}</td>
                         <td>{log.difference.toFixed(4)}</td>

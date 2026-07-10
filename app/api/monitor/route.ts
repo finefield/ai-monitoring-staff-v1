@@ -10,6 +10,7 @@ export async function POST() {
   } catch (error) {
     return NextResponse.json(
       {
+        ok: false,
         error: "monitor_failed",
         detail: error instanceof Error ? error.message : "Unknown monitor error"
       },

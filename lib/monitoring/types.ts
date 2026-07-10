@@ -3,6 +3,8 @@ export type AlertType =
   | "hit_buy"
   | "approach_sell"
   | "hit_sell"
+  | "movement_up"
+  | "movement_down"
   | "error";
 
 export type Rate = {
@@ -23,6 +25,9 @@ export type AlertSetting = {
   notifyLineUserId: string;
   isActive: boolean;
   cooldownMinutes: number;
+  movementAlertEnabled: boolean;
+  movementWindowMinutes: number;
+  movementThreshold: number;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -36,6 +41,9 @@ export type AlertContext = {
   difference: number;
   fetchedAt: string;
   source: string;
+  comparisonPrice?: number;
+  comparisonFetchedAt?: string;
+  comparisonWindowMinutes?: number;
 };
 
 export type AlertLog = AlertContext & {

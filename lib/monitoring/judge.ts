@@ -50,3 +50,35 @@ export function evaluateAlert(
 
   return alerts;
 }
+
+export function evaluateMovementAlert(
+  currentRate: Rate,
+  pastRate: Rate | null,
+  settings: AlertSetting
+): AlertContext[] {
+  if (!settings.isActive || !settings.movementAlertEnabled || !pastRate) {
+    return [];
+  }
+
+  const movement = Number((currentRate.mid - pastRate.mid).toFixed(6));
+
+  if (Math.abs(movement) < settings.movementThreshold || movement === 0) {
+    return [];
+  }
+
+  return [
+    {
+      settingId: settings.id,
+      symbol: settings.symbol,
+      alertType: movement > 0 ? "movement_up" : "movement_down",
+      currentPrice: currentRate.mid,
+      targetPrice: pastRate.mid,
+      difference: movement,
+      fetchedAt: currentRate.fetchedAt,
+      source: currentRate.source,
+      comparisonPrice: pastRate.mid,
+      comparisonFetchedAt: pastRate.fetchedAt,
+      comparisonWindowMinutes: settings.movementWindowMinutes
+    }
+  ];
+}

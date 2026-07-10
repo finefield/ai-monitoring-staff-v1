@@ -10,7 +10,10 @@ export const defaultSetting: AlertSetting = {
   approachWidth: 0.03,
   notifyLineUserId: "",
   isActive: true,
-  cooldownMinutes: 30
+  cooldownMinutes: 30,
+  movementAlertEnabled: true,
+  movementWindowMinutes: 15,
+  movementThreshold: 0.03
 };
 
 export const requiredDisclaimer =

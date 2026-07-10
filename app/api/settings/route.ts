@@ -32,7 +32,15 @@ export async function POST(request: Request) {
       approachWidth: Number(body.approachWidth),
       notifyLineUserId: String(body.notifyLineUserId || ""),
       isActive: Boolean(body.isActive),
-      cooldownMinutes: Number(body.cooldownMinutes)
+      cooldownMinutes: Number(body.cooldownMinutes),
+      movementAlertEnabled:
+        body.movementAlertEnabled ?? defaultSetting.movementAlertEnabled,
+      movementWindowMinutes: Number(
+        body.movementWindowMinutes ?? defaultSetting.movementWindowMinutes
+      ),
+      movementThreshold: Number(
+        body.movementThreshold ?? defaultSetting.movementThreshold
+      )
     };
 
     const saved = await upsertAlertSetting(setting);
