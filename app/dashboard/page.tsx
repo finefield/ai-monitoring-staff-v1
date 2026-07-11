@@ -12,6 +12,7 @@ type DashboardData = {
 type MonitorResult = {
   setting: AlertSetting;
   rate: Rate;
+  movementSkipReason?: string | null;
   alerts: Array<{
     alertType: string;
     currentPrice: number;
@@ -135,6 +136,11 @@ export default function DashboardPage() {
                 取得元: {monitorResult.rate.source} / 取得時刻:{" "}
                 {formatTime(monitorResult.rate.fetchedAt)}
               </p>
+              {monitorResult.movementSkipReason && (
+                <p className="label">
+                  短時間変動アラート skipped: {monitorResult.movementSkipReason}
+                </p>
+              )}
 
               {monitorResult.alerts.length === 0 ? (
                 <div className="empty" style={{ marginTop: 14 }}>

@@ -53,6 +53,45 @@ export type AlertLog = AlertContext & {
   sendStatus: string;
 };
 
+export type MarketGuardState = {
+  canUseRate: boolean;
+  marketOpen: boolean;
+  rateFresh: boolean;
+  reason: string;
+  checkedAt: string;
+  rateAgeMinutes: number | null;
+  maxRateAgeMinutes: number;
+};
+
+export type MonitorAlertDecision = {
+  alertType: AlertType;
+  currentPrice: number;
+  targetPrice: number;
+  difference: number;
+  notifyAllowed: boolean;
+  sendStatus: string;
+};
+
+export type MovementSkipReason =
+  | "comparison_rate_not_found"
+  | "source_mismatch"
+  | "stale_rate"
+  | "unsupported_movement_provider";
+
+export type MonitorLog = {
+  id?: string;
+  symbol: string;
+  executedAt: string;
+  status: "completed" | "skipped_market_guard" | "error";
+  rate: Rate | null;
+  marketGuard: MarketGuardState | null;
+  evaluatedAlerts: MonitorAlertDecision[];
+  movementSkipReason?: MovementSkipReason | null;
+  alertLogs: AlertLog[];
+  error?: string | null;
+  createdAt?: string;
+};
+
 export type SendResult = {
   status: "sent" | "skipped" | "skipped_no_line_token" | "error";
   detail?: string;

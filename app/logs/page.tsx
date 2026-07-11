@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertLog, Rate } from "@/lib/monitoring/types";
+import { AlertLog, MonitorLog, Rate } from "@/lib/monitoring/types";
 
 function formatTime(value: string) {
   return new Date(value).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
@@ -20,6 +20,7 @@ const alertTypeLabels: Record<string, string> = {
 export default function LogsPage() {
   const [logs, setLogs] = useState<AlertLog[]>([]);
   const [rateLogs, setRateLogs] = useState<Rate[]>([]);
+  const [monitorLogs, setMonitorLogs] = useState<MonitorLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
@@ -28,6 +29,7 @@ export default function LogsPage() {
     const data = await response.json();
     setLogs(data.logs);
     setRateLogs(data.rateLogs);
+    setMonitorLogs(data.monitorLogs || []);
     setLoading(false);
   }
 
@@ -51,6 +53,65 @@ export default function LogsPage() {
         <div className="empty">読み込み中...</div>
       ) : (
         <div className="stack">
+          <section>
+            <h3 className="section-title">監視実行履歴</h3>
+            {monitorLogs.length === 0 ? (
+              <div className="empty">監視実行履歴はまだありません。</div>
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>実行時刻</th>
+                      <th>通貨ペア</th>
+                      <th>ステータス</th>
+                      <th>Market Guard</th>
+                      <th>Mid</th>
+                      <th>取得元</th>
+                      <th>変動スキップ</th>
+                      <th>判定数</th>
+                      <th>通知結果</th>
+                      <th>エラー</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monitorLogs.map((log) => (
+                      <tr key={log.id || `${log.executedAt}-${log.symbol}`}>
+                        <td>{formatTime(log.executedAt)}</td>
+                        <td>{log.symbol}</td>
+                        <td>{log.status}</td>
+                        <td>
+                          {log.marketGuard
+                            ? `${log.marketGuard.canUseRate ? "OK" : "STOP"} / ${
+                                log.marketGuard.reason
+                              }`
+                            : "-"}
+                        </td>
+                        <td>{log.rate ? log.rate.mid.toFixed(4) : "-"}</td>
+                        <td>{log.rate?.source || "-"}</td>
+                        <td>{log.movementSkipReason || "-"}</td>
+                        <td>{log.evaluatedAlerts.length}件</td>
+                        <td>
+                          {log.evaluatedAlerts.length === 0
+                            ? "-"
+                            : log.evaluatedAlerts
+                                .map(
+                                  (alert) =>
+                                    `${alertTypeLabels[alert.alertType] || alert.alertType}: ${
+                                      alert.sendStatus
+                                    }`
+                                )
+                                .join(" / ")}
+                        </td>
+                        <td>{log.error || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
           <section>
             <h3 className="section-title">通知履歴</h3>
             {logs.length === 0 ? (

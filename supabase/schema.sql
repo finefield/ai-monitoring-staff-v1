@@ -50,6 +50,34 @@ create table if not exists public.alert_logs (
   send_status text not null default 'unknown'
 );
 
+create table if not exists public.monitor_logs (
+  id uuid primary key default gen_random_uuid(),
+  symbol text not null,
+  executed_at timestamptz not null,
+  status text not null check (
+    status in (
+      'completed',
+      'skipped_market_guard',
+      'error'
+    )
+  ),
+  rate jsonb,
+  market_guard jsonb,
+  evaluated_alerts jsonb not null default '[]'::jsonb,
+  movement_skip_reason text check (
+    movement_skip_reason is null
+    or movement_skip_reason in (
+      'comparison_rate_not_found',
+      'source_mismatch',
+      'stale_rate',
+      'unsupported_movement_provider'
+    )
+  ),
+  alert_logs jsonb not null default '[]'::jsonb,
+  error text,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists alert_settings_symbol_idx
   on public.alert_settings(symbol);
 
@@ -58,6 +86,9 @@ create index if not exists rate_logs_symbol_fetched_at_idx
 
 create index if not exists alert_logs_setting_type_sent_at_idx
   on public.alert_logs(setting_id, alert_type, sent_at desc);
+
+create index if not exists monitor_logs_symbol_executed_at_idx
+  on public.monitor_logs(symbol, executed_at desc);
 
 insert into public.alert_settings (
   id,

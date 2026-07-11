@@ -1,5 +1,12 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { AlertContext, AlertLog, AlertSetting, Rate } from "./types";
+import {
+  AlertContext,
+  AlertLog,
+  AlertSetting,
+  MovementSkipReason,
+  MonitorLog,
+  Rate
+} from "./types";
 import { defaultSetting } from "./config";
 
 type AlertSettingRow = {
@@ -16,6 +23,11 @@ type AlertSettingRow = {
   movement_threshold?: number | string | null;
   created_at?: string;
   updated_at?: string;
+};
+
+type MovementComparisonResult = {
+  rate: Rate | null;
+  skipReason: MovementSkipReason | null;
 };
 
 function toAlertSetting(row: AlertSettingRow): AlertSetting {
@@ -166,6 +178,67 @@ export async function getPastRate(
   };
 }
 
+export async function getMovementComparisonRate(
+  symbol: string,
+  source: string,
+  minutesAgo: number,
+  now = new Date()
+): Promise<MovementComparisonResult> {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return { rate: null, skipReason: "comparison_rate_not_found" };
+  }
+
+  const rangeStart = new Date(
+    now.getTime() - (minutesAgo + 5) * 60_000
+  ).toISOString();
+  const rangeEnd = new Date(
+    now.getTime() - Math.max(0, minutesAgo - 5) * 60_000
+  ).toISOString();
+
+  const { data, error } = await supabase
+    .from("rate_logs")
+    .select("*")
+    .eq("symbol", symbol)
+    .eq("source", source)
+    .gte("fetched_at", rangeStart)
+    .lte("fetched_at", rangeEnd)
+    .order("fetched_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!error && data) {
+    return {
+      rate: {
+        symbol: data.symbol,
+        bid: Number(data.bid),
+        ask: Number(data.ask),
+        mid: Number(data.mid),
+        source: data.source,
+        fetchedAt: data.fetched_at
+      },
+      skipReason: null
+    };
+  }
+
+  const { data: anySourceData, error: anySourceError } = await supabase
+    .from("rate_logs")
+    .select("source")
+    .eq("symbol", symbol)
+    .gte("fetched_at", rangeStart)
+    .lte("fetched_at", rangeEnd)
+    .neq("source", source)
+    .limit(1)
+    .maybeSingle();
+
+  if (!anySourceError && anySourceData) {
+    return { rate: null, skipReason: "source_mismatch" };
+  }
+
+  return { rate: null, skipReason: "comparison_rate_not_found" };
+}
+
 export async function saveAlertLog(alert: AlertLog): Promise<void> {
   const supabase = getSupabaseAdmin();
 
@@ -184,6 +257,26 @@ export async function saveAlertLog(alert: AlertLog): Promise<void> {
     sent_to: alert.sentTo,
     sent_at: alert.sentAt,
     send_status: alert.sendStatus
+  });
+}
+
+export async function saveMonitorLog(log: MonitorLog): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return;
+  }
+
+  await supabase.from("monitor_logs").insert({
+    symbol: log.symbol,
+    executed_at: log.executedAt,
+    status: log.status,
+    rate: log.rate,
+    market_guard: log.marketGuard,
+    evaluated_alerts: log.evaluatedAlerts,
+    movement_skip_reason: log.movementSkipReason || null,
+    alert_logs: log.alertLogs,
+    error: log.error || null
   });
 }
 
@@ -271,5 +364,37 @@ export async function listRateLogs(): Promise<Rate[]> {
     mid: Number(row.mid),
     source: row.source,
     fetchedAt: row.fetched_at
+  }));
+}
+
+export async function listMonitorLogs(): Promise<MonitorLog[]> {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("monitor_logs")
+    .select("*")
+    .order("executed_at", { ascending: false })
+    .limit(100);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map((row) => ({
+    id: row.id,
+    symbol: row.symbol,
+    executedAt: row.executed_at,
+    status: row.status,
+    rate: row.rate,
+    marketGuard: row.market_guard,
+    evaluatedAlerts: row.evaluated_alerts || [],
+    movementSkipReason: row.movement_skip_reason,
+    alertLogs: row.alert_logs || [],
+    error: row.error,
+    createdAt: row.created_at
   }));
 }
