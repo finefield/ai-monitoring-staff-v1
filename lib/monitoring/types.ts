@@ -55,6 +55,8 @@ export type AlertLog = AlertContext & {
 
 export type MarketGuardState = {
   canUseRate: boolean;
+  canEvaluatePriceAlerts: boolean;
+  canEvaluateMovementAlerts: boolean;
   marketOpen: boolean;
   rateFresh: boolean;
   reason: string;

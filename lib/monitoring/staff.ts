@@ -63,11 +63,19 @@ export async function runMonitoringStaff(symbol = DEFAULT_SYMBOL) {
 
     let pastRate = null;
 
-    if (setting.movementAlertEnabled && !movementSkipReason && !isRateFresh(rate)) {
+    if (
+      setting.movementAlertEnabled &&
+      !movementSkipReason &&
+      !marketGuard.canEvaluateMovementAlerts
+    ) {
       movementSkipReason = "stale_rate";
     }
 
-    if (setting.movementAlertEnabled && !movementSkipReason) {
+    if (
+      setting.movementAlertEnabled &&
+      marketGuard.canEvaluateMovementAlerts &&
+      !movementSkipReason
+    ) {
       const comparison = await getMovementComparisonRate(
         symbol,
         rate.source,
@@ -88,7 +96,7 @@ export async function runMonitoringStaff(symbol = DEFAULT_SYMBOL) {
     }
 
     const alertContexts = [
-      ...evaluateAlert(rate, setting),
+      ...(marketGuard.canEvaluatePriceAlerts ? evaluateAlert(rate, setting) : []),
       ...(!setting.movementAlertEnabled || movementSkipReason
         ? []
         : evaluateMovementAlert(rate, pastRate, setting))

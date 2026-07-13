@@ -31,6 +31,13 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       ...result,
+      marketOpen: result.marketGuard?.marketOpen ?? null,
+      rateFresh: result.marketGuard?.rateFresh ?? null,
+      canEvaluatePriceAlerts:
+        result.marketGuard?.canEvaluatePriceAlerts ?? null,
+      canEvaluateMovementAlerts:
+        result.marketGuard?.canEvaluateMovementAlerts ?? null,
+      reason: result.marketGuard?.reason ?? null,
       executedAt: new Date().toISOString()
     });
   } catch (error) {

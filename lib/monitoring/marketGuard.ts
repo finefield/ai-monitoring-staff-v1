@@ -47,6 +47,12 @@ function getMaxRateAgeMinutes() {
   return value;
 }
 
+function isFrankfurterRate(rate: Rate) {
+  const provider = process.env.RATE_API_PROVIDER || "";
+
+  return provider === "frankfurter" || rate.source === "frankfurter";
+}
+
 export function isRateFresh(
   rate: Rate,
   maxAgeMinutes = getMaxRateAgeMinutes(),
@@ -96,20 +102,29 @@ export function evaluateMarketGuard(
 ): MarketGuardState {
   const maxRateAgeMinutes = getMaxRateAgeMinutes();
   const marketOpen = isFxMarketOpen(now);
+  const frankfurterRate = isFrankfurterRate(rate);
   const rateAgeMinutes = getRateAgeMinutes(rate, now);
   const rateFresh = isRateFresh(rate, maxRateAgeMinutes, now);
+  const canEvaluatePriceAlerts = marketOpen && (rateFresh || frankfurterRate);
+  const canEvaluateMovementAlerts = marketOpen && rateFresh && !frankfurterRate;
   const reasons: string[] = [];
 
   if (!marketOpen) {
     reasons.push("fx_market_closed");
   }
 
-  if (!rateFresh) {
+  if (!rateFresh && !frankfurterRate) {
     reasons.push(rateAgeMinutes === null ? "invalid_rate_timestamp" : "stale_rate");
   }
 
+  if (frankfurterRate) {
+    reasons.push("movement_unsupported_provider");
+  }
+
   return {
-    canUseRate: marketOpen && rateFresh,
+    canUseRate: canEvaluatePriceAlerts || canEvaluateMovementAlerts,
+    canEvaluatePriceAlerts,
+    canEvaluateMovementAlerts,
     marketOpen,
     rateFresh,
     reason: reasons.length > 0 ? reasons.join(",") : "ok",
